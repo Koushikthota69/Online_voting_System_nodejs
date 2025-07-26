@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vote for Your Candidate</title>
+
+  <style> 
+    body {
+      font-family: 'Arial', sans-serif;
+      background-color: #f8f9fa;
+      margin: 0;
+      padding: 0;
+    }
+
+    .navbar {
+      background-color: #343a40;
+      padding: 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .navbar .navbar-brand {
+      font-weight: bold;
+      color: white;
+      text-decoration: none;
+      font-size: 24px;
+    }
+
+    .navbar .nav-link {
+      color: white;
+      margin-left: 20px;
+      text-decoration: none;
+      transition: color 0.3s;
+    }
+
+    .navbar .nav-link:hover {
+      color: #17a2b8;
+      text-decoration: underline;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 40px auto;
+      padding: 20px;
+      background-color: white;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      border-radius: 8px;
+    }
+
+    h1, h3 {
+      text-align: center;
+      color: #333;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: bold;
+    }
+
+    select {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 20px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+
+    ul {
+      list-style-type: none;
+      padding: 0;
+    }
+
+    li {
+      padding: 10px;
+      margin-bottom: 10px;
+      background-color: #f1f1f1;
+      border-radius: 5px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    button {
+      padding: 8px 12px;
+      background-color: #17a2b8;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    button:hover {
+      background-color: #138496;
+    }
+
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <nav class="navbar">
+    <a class="navbar-brand" href="home.html">Online Voting</a>
+    <div>
+      <a class="nav-link" href="home.html">Home</a>
+      <a class="nav-link hidden" id="resultsLink" href="results.html">Results</a>
+      <a class="nav-link" href="logout">Logout</a>
+    </div>
+  </nav>
+
+  <!-- Main Container -->
+  <div class="container">
+    <h1>Vote for Your Candidate</h1>
+
+    <label for="electionDropdown">Select an Election:</label>
+    <select id="electionDropdown">
+      <option disabled selected>Loading elections...</option>
+    </select>
+
+    <h3>Candidates:</h3>
+    <ul id="candidateList">
+      <li>Select an election to see candidates.</li>
+    </ul>
+
+    <!-- Voting Message -->
+    <p id="voteMessage" class="hidden"></p>
+  </div>
+
+  <script>
+    window.onload = () => {
+      fetch('/session-check')
+        .then(res => res.json())
+        .then(data => {
+          if (!data.loggedIn) {
+            window.location.href = '/login.html';
+          }
+        });
+
+      loadElections();
+    };
+
+    function loadElections() {
+      fetch('/user_elections')
+        .then(response => response.json())
+        .then(data => {
+          const dropdown = document.getElementById('electionDropdown');
+          dropdown.innerHTML = '';
+
+          const defaultOption = document.createElement('option');
+          defaultOption.disabled = true;
+          defaultOption.selected = true;
+          defaultOption.textContent = '-- Select an Election --';
+          dropdown.appendChild(defaultOption);
+
+          if (!data.length) {
+            dropdown.innerHTML = '<option>No elections available</option>';
+            return;
+          }
+
+          data.forEach(election => {
+            const option = document.createElement('option');
+            option.value = election.id;
+            option.textContent = `${election.title} (ID: ${election.id})`;
+            dropdown.appendChild(option);
+          });
+
+          dropdown.addEventListener('change', function() {
+            fetchCandidates(this.value);
+          });
+        })
+        .catch(error => {
+          console.error('Error fetching elections:', error);
+          document.getElementById('electionDropdown').innerHTML = '<option>Error loading elections</option>';
+        });
+    }
+
+    function fetchCandidates(electionId) {
+      fetch(`/candidates?election_id=${electionId}`)
+        .then(response => response.json())
+        .then(data => {
+          const candidateList = document.getElementById('candidateList');
+          candidateList.innerHTML = '';
+
+          if (!data.length) {
+            candidateList.innerHTML = '<li>No candidates found.</li>';
+            return;
+          }
+
+          data.forEach(candidate => {
+            const li = document.createElement('li');
+            li.innerHTML = `
+              <span>${candidate.candidate_name}</span>
+              <button onclick="vote(${candidate.id}, '${electionId}')">Vote</button>
+            `;
+            candidateList.appendChild(li);
+          });
+        })
+        .catch(error => {
+          console.error('Error fetching candidates:', error);
+        });
+    }
+
+    function vote(candidateId, electionId) {
+      console.log('Voting for Candidate:', candidateId, 'Election:', electionId);
+
+      fetch('/vote', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ election_id: electionId, candidate_id: candidateId })
+      })
+      .then(response => response.json())
+      .then(data => {
+        const voteMessage = document.getElementById('voteMessage');
+        voteMessage.classList.remove('hidden');
+
+        if (data.success) {
+          voteMessage.style.color = 'green';
+          voteMessage.textContent = '✅ ' + data.message;
+          document.getElementById('resultsLink').classList.remove('hidden'); // Show results link
+        } else {
+          voteMessage.style.color = 'red';
+          voteMessage.textContent = '❌ ' + data.message;
+        }
+      })
+      .catch(error => {
+        console.error('Error submitting vote:', error);
+        alert('❌ Failed to submit vote. Try again.');
+      });
+    }
+  </script>
+
+</body>
+</html>

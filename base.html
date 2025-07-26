@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Online Voting</title>
+
+  <!-- ✅ Bootstrap CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
+
+  <!-- ✅ Your Custom Stylesheet (change .scss to .css if needed) -->
+  <link rel="stylesheet" type="text/css" href="style.scss" />
+</head>
+
+<body>
+  <!-- ✅ Navigation Bar -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container">
+      <a class="navbar-brand" href="home.html">Online Voting</a>
+      
+      <!-- ✅ Hamburger menu toggle button (for mobile) -->
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      
+      <!-- ✅ Collapsible Navbar -->
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav ms-auto" id="auth-links">
+          <!-- Links will be dynamically injected here -->
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ✅ Main Content Placeholder -->
+  <div class="container mt-4">
+    <!-- Content will be inserted here by your page -->
+  </div>
+
+  <!-- ✅ Bootstrap Bundle with Popper -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- ✅ Navbar JS to check session & update links -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      updateNavbar(); // Call on page load
+    });
+
+    function updateNavbar() {
+      fetch('/session-check')
+        .then(response => response.json())
+        .then(data => {
+          const navLinks = document.getElementById("auth-links");
+
+          if (!navLinks) {
+            console.error("Navbar element not found!");
+            return;
+          }
+
+          // Clear any existing links to avoid duplicates
+          navLinks.innerHTML = '';
+
+          // Always show Home and Elections links
+          navLinks.innerHTML += `
+            <li class="nav-item"><a class="nav-link" href="home.html">Home</a></li>
+            <li class="nav-item"><a class="nav-link" href="list_elections.html">Elections</a></li>
+          `;
+
+          if (data.loggedIn) {
+            // Show Logout if logged in
+            navLinks.innerHTML += `
+              <li class="nav-item"><a class="nav-link" href="/logout">Logout</a></li>
+            `;
+
+            // Optionally show username
+            if (data.user?.username) {
+              navLinks.innerHTML += `
+                <li class="nav-item">
+                  <span class="nav-link disabled">Hello, ${data.user.username}</span>
+                </li>
+              `;
+            }
+
+          } else {
+            // Show Login and Register if not logged in
+            navLinks.innerHTML += `
+              <li class="nav-item"><a class="nav-link" href="login.html">Login</a></li>
+              <li class="nav-item"><a class="nav-link" href="register.html">Register</a></li>
+            `;
+          }
+
+        })
+        .catch(error => {
+          console.error("Error fetching session status:", error);
+        });
+    }
+  </script>
+
+</body>
+</html>

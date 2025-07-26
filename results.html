@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Final Election Results</title>
+
+    <!-- Internal CSS with SCSS-like Variables Converted to Pure CSS -->
+    <style>
+        /* Color Variables */
+        :root {
+            --primary-color: #222; /* Light Black */
+            --secondary-color: #6c757d;
+            --background-color: #f8f9fa;
+            --text-color: #343a40;
+            --warning-color: #ffc107;
+            --hover-dark: #444;
+            --hover-warning: #e0a800;
+        }
+
+        /* General Styles */
+        body {
+            background-color: var(--background-color);
+            color: var(--text-color);
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+
+        /* Navbar */
+        .navbar {
+            background-color: var(--primary-color);
+            padding: 15px;
+            display: flex;
+            justify-content: flex-end; /* Align text to the right */
+            align-items: center;
+        }
+
+        .navbar a {
+            color: white;
+            text-decoration: none;
+            margin: 0 15px;
+            font-size: 18px;
+            font-weight: bold;
+            transition: color 0.3s ease-in-out;
+        }
+
+        .navbar a:hover {
+            color: var(--hover-dark);
+        }
+
+        /* User Name in Navbar */
+        .user-name {
+            color: white;
+            font-weight: bold;
+            font-size: 18px;
+            margin-left: 20px;
+        }
+
+        /* Results Container */
+        .container {
+            max-width: 800px;
+            margin: auto;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            font-size: 28px;
+        }
+
+        h2 {
+            font-size: 22px;
+            color: var(--primary-color);
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 5px;
+            margin-bottom: 15px;
+        }
+
+        /* Candidate List */
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        li {
+            background: var(--secondary-color);
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            font-size: 18px;
+            font-weight: bold;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.3s;
+        }
+
+        li:hover {
+            background: var(--hover-dark);
+        }
+
+        /* Winner Highlight */
+        .winner {
+            background: var(--hover-dark) !important;
+        }
+
+        /* Buttons */
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.3s;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--hover-dark);
+        }
+
+        .btn-warning {
+            background-color: var(--warning-color);
+            color: black;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.3s;
+        }
+
+        .btn-warning:hover {
+            background-color: var(--hover-warning);
+        }
+
+        /* Error Message */
+        .error-message {
+            color: red;
+            font-weight: bold;
+        }
+
+        /* Animation for results update */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        li {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navbar -->
+    <div class="navbar">
+        <a href="home.html">Home</a>
+        <a href="logout">Logout</a>
+        <span class="user-name" id="userName">Loading...</span>
+    </div>
+
+    <h1>Final Election Results</h1>
+    <div class="container">
+        <p>Loading results...</p>
+    </div>
+
+    <script>
+        // Fetch and display results dynamically
+        function fetchResults() {
+            fetch('/api/results')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    const container = document.querySelector('.container');
+                    container.innerHTML = '';
+
+                    if (!data.length) {
+                        container.innerHTML = '<p class="error-message">No results available.</p>';
+                        return;
+                    }
+
+                    data.forEach(election => {
+                        const electionDiv = document.createElement('div');
+                        electionDiv.innerHTML = `<h2>${election.title}</h2>`;
+                        
+                        const list = document.createElement('ul');
+
+                        election.candidates.forEach(candidate => {
+                            const listItem = document.createElement('li');
+                            listItem.innerHTML = `<span>${candidate.candidate_name}</span> <span>${candidate.vote_count} votes</span>`;
+
+                            if (candidate.isWinner) {
+                                listItem.classList.add('winner');
+                            }
+
+                            list.appendChild(listItem);
+                        });
+
+                        electionDiv.appendChild(list);
+                        container.appendChild(electionDiv);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading results:', error);
+                    document.querySelector('.container').innerHTML = '<p class="error-message">Error loading results.</p>';
+                });
+        }
+
+        // Fetch user info and set the username in the navbar
+        function fetchUserInfo() {
+            fetch('/session-check')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.loggedIn) {
+                        document.getElementById('userName').textContent = data.username || 'User';
+                    } else {
+                        window.location.href = "/login.html"; // Redirect to login if not logged in
+                    }
+                })
+                .catch(error => console.error("Error fetching user info:", error));
+        }
+
+        // Call functions when page loads
+        window.onload = () => {
+            fetchUserInfo();
+            fetchResults();
+        };
+    </script>
+
+</body>
+</html>

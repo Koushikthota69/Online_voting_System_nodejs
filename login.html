@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Login | Online Voting</title>
+    <link rel="stylesheet" href="style.scss">
+</head>
+<body>
+
+    <!-- Include Navigation -->
+    <div id="nav-placeholder"></div>
+    <script>
+        fetch("base.html")
+            .then(response => response.text())
+            .then(data => document.getElementById("nav-placeholder").innerHTML = data);
+    </script>
+
+    <div class="container mt-4">
+        <h2>Login</h2>
+
+        <!-- ✅ Login Form (No Method, No Action) -->
+        <form id="loginForm">
+            <div class="mb-3">
+                <label for="username">Username:</label>
+                <input type="text" id="username" name="username" class="form-control" required>
+            </div>
+            <div class="mb-3">
+                <label for="password">Password:</label>
+                <input type="password" id="password" name="password" class="form-control" required>
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Login</button>
+        </form>
+
+        <!-- ✅ Forgot Password & Register Link -->
+       <!-- ✅ Forgot Password & Register Link -->
+<div class="mt-3 text-center">
+    <a href="password_reset.html">Forgot Password?</a>
+    <p id="registerRow" style="text-align: center; margin-top: 10px;">
+        Don't have an account? <a href="register.html" id="registerLink">Register here</a>
+    </p>
+</div>
+
+
+        <!-- ✅ Message Display (Error/Success) -->
+        <div id="message" class="mt-3 text-center" style="color: red;"></div>
+    </div>
+
+    <!-- ✅ Login Script (Handles Errors, Shows Register Link on Failure) -->
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault(); // Prevent form submission
+
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value.trim();
+            const messageDiv = document.getElementById('message');
+            const registerLink = document.getElementById('registerLink');
+
+            if (!username || !password) {
+                messageDiv.style.color = 'red';
+                messageDiv.textContent = 'Please fill in both fields.';
+                return;
+            }
+
+            fetch('/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            })
+            .then(response => response.json())
+            .then(data => {
+                messageDiv.textContent = data.message;
+
+                if (data.success) {
+                    messageDiv.style.color = 'green';
+                    registerLink.style.display = 'none'; // Hide Register link on success
+                    setTimeout(() => { window.location.href = 'home.html'; }, 1000);
+                } else {
+                    messageDiv.style.color = 'red';
+                    registerLink.style.display = 'inline'; // Show Register link on failure
+                }
+            })
+            .catch(error => {
+                console.error('Login error:', error);
+                messageDiv.style.color = 'red';
+                messageDiv.textContent = 'An error occurred. Please try again.';
+            });
+        });
+    </script>
+
+</body>
+</html>
+

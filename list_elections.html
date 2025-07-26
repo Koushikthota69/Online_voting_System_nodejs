@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>List of Elections</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f8f9fa;
+      margin: 0;
+      padding: 0;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 40px auto;
+      padding: 20px;
+      background-color: white;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      border-radius: 8px;
+    }
+
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+
+    ul {
+      list-style-type: none;
+      padding: 0;
+    }
+
+    li {
+      margin-bottom: 15px;
+    }
+
+    .election-button {
+      width: 100%;
+      padding: 12px;
+      font-size: 16px;
+      background-color: #17a2b8;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    .election-button:hover {
+      background-color: #138496;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1>Available Elections</h1>
+
+    <ul id="electionsList">
+      <li>Loading elections...</li>
+    </ul>
+  </div>
+
+  <script>
+    window.onload = () => {
+      fetch('/user_elections')
+        .then(response => response.json())
+        .then(data => {
+          const list = document.getElementById('electionsList');
+          list.innerHTML = ''; // Clear "Loading..."
+
+          if (!data.length) {
+            list.innerHTML = '<li>No elections available.</li>';
+            return;
+          }
+
+          data.forEach(election => {
+            const li = document.createElement('li');
+
+            const button = document.createElement('button');
+            button.classList.add('election-button');
+            button.textContent = `${election.title} (ID: ${election.id})`;
+
+            // When clicking, send them to voter_verify.html with election ID
+            button.onclick = () => {
+              window.location.href = `verify_voter.html?election_id=${election.id}`;
+            };
+
+            li.appendChild(button);
+            list.appendChild(li);
+          });
+        })
+        .catch(error => {
+          console.error('Error fetching elections:', error);
+        });
+    };
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Verify Voter - OTP Verification</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f8f9fa;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    .container {
+      width: 400px;
+      background-color: white;
+      padding: 30px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      border-radius: 10px;
+    }
+
+    h2 {
+      text-align: center;
+      color: #333;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0;
+      box-sizing: border-box;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      font-size: 16px;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      background-color: #17a2b8;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #138496;
+    }
+
+    #message {
+      margin-top: 15px;
+      color: red;
+      text-align: center;
+    }
+
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="container">
+    <h2>Voter Verification</h2>
+
+    <!-- Step 1: Enter College ID and Email -->
+    <div id="step1">
+      <input type="text" id="college_id" placeholder="Enter College ID / Voter ID" required />
+      <input type="email" id="email" placeholder="Enter Registered Email" required />
+      <button onclick="sendOTP()">Send OTP</button>
+    </div>
+
+    <!-- Step 2: Enter OTP -->
+    <div id="step2" class="hidden">
+      <input type="text" id="otp" placeholder="Enter OTP" required />
+      <button onclick="verifyOTP()">Verify OTP</button>
+    </div>
+
+    <div id="message"></div>
+  </div>
+
+  <script>
+    function sendOTP() {
+      const college_id = document.getElementById('college_id').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const messageDiv = document.getElementById('message');
+
+      messageDiv.style.color = 'red';
+      messageDiv.textContent = '';
+
+      if (!college_id || !email) {
+        messageDiv.textContent = 'Please enter both College ID and Email.';
+        return;
+      }
+
+      fetch('/send_otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ college_id, email })
+      })
+      .then(response => response.json())
+      .then(data => {
+        messageDiv.textContent = data.message;
+
+        if (data.success) {
+          messageDiv.style.color = 'green';
+          document.getElementById('step1').classList.add('hidden');
+          document.getElementById('step2').classList.remove('hidden');
+        }
+      })
+      .catch(error => {
+        console.error('Error sending OTP:', error);
+        messageDiv.textContent = 'An error occurred while sending OTP.';
+      });
+    }
+
+    function verifyOTP() {
+      const otp = document.getElementById('otp').value.trim();
+      const messageDiv = document.getElementById('message');
+
+      messageDiv.style.color = 'red';
+      messageDiv.textContent = '';
+
+      if (!otp) {
+        messageDiv.textContent = 'Please enter the OTP.';
+        return;
+      }
+
+      fetch('/verify_otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ otp })
+      })
+      .then(response => response.json())
+      .then(data => {
+        messageDiv.textContent = data.message;
+
+        if (data.success) {
+          messageDiv.style.color = 'green';
+
+          // Redirect to vote page with election ID
+          const urlParams = new URLSearchParams(window.location.search);
+          const electionId = urlParams.get('election_id');
+          
+          if (electionId) {
+            window.location.href = `vote.html?election_id=${electionId}`;
+          } else {
+            messageDiv.textContent = 'Election ID missing in URL.';
+          }
+        }
+      })
+      .catch(error => {
+        console.error('Error verifying OTP:', error);
+        messageDiv.textContent = 'An error occurred while verifying OTP.';
+      });
+    }
+  </script>
+
+</body>
+</html>

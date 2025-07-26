@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin Panel | Online Voting</title>
+  <link rel="stylesheet" href="/styles/main.css" /> <!-- Optional external CSS -->
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f4f6f8;
+      color: #333;
+      line-height: 1.6;
+    }
+
+    nav {
+      background-color: #007bff;
+      color: white;
+      padding: 15px;
+      text-align: center;
+    }
+
+    nav a {
+      color: white;
+      text-decoration: none;
+      margin: 0 10px;
+      font-weight: bold;
+    }
+
+    .container {
+      max-width: 700px;
+      margin: 40px auto;
+      padding: 25px 30px;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    h1, h2 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    form {
+      margin-bottom: 30px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 600;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 15px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      transition: border-color 0.3s;
+    }
+
+    input:focus, select:focus {
+      border-color: #007bff;
+      outline: none;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    .alert {
+      padding: 12px;
+      margin-bottom: 20px;
+      border-radius: 5px;
+      text-align: center;
+      color: white;
+    }
+
+    .success { background-color: #4CAF50; }
+    .error { background-color: #f44336; }
+
+    .delete-btn {
+      background-color: #dc3545;
+      border: none;
+      color: white;
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-left: 10px;
+    }
+
+    .delete-btn:hover {
+      background-color: #b02a37;
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    li {
+      margin-bottom: 10px;
+      background-color: #f1f1f1;
+      padding: 10px;
+      border-radius: 6px;
+    }
+
+    footer {
+      text-align: center;
+      padding: 15px;
+      color: #777;
+      margin-top: 30px;
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        width: 90%;
+        padding: 15px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation -->
+  <nav>
+    <a href="/home.html">Home</a>
+    <a href="/admin.html">Admin Panel</a>
+    <a href="/results.html">Results</a>
+    <a href="/logout">Logout</a>
+  </nav>
+
+  <div class="container">
+    <h1>Admin Panel</h1>
+
+    <!-- Add Election -->
+    <form id="addElectionForm">
+      <label for="election_name">Election Name</label>
+      <input type="text" id="election_name" required />
+
+      <label for="start_time">Start Time</label>
+      <input type="datetime-local" id="start_time" required />
+
+      <label for="end_time">End Time</label>
+      <input type="datetime-local" id="end_time" required />
+
+      <button type="submit">Create Election</button>
+    </form>
+
+    <!-- Add Candidate -->
+    <form id="addCandidateForm">
+      <label for="election_id">Select Election</label>
+      <select id="election_id" required>
+        <option value="" disabled selected>Loading elections...</option>
+      </select>
+
+      <label for="candidate_name">Candidate Name</label>
+      <input type="text" id="candidate_name" required />
+
+      <button type="submit">Add Candidate</button>
+    </form>
+
+    <!-- Election List -->
+    <h2>Manage Elections</h2>
+    <ul id="electionList">
+      <li>Loading elections...</li>
+    </ul>
+
+    <!-- Candidate List -->
+    <h2>Manage Candidates</h2>
+    <select id="electionFilter" onchange="loadCandidates()">
+      <option value="">Select an Election</option>
+    </select>
+    <ul id="candidateList">
+      <li>Select an election to view candidates.</li>
+    </ul>
+
+    <div id="message" class="alert" style="display: none;"></div>
+  </div>
+
+  <footer>&copy; 2025 Online Voting System. All rights reserved.</footer>
+
+  <script>
+    // Check if admin is logged in
+  
+    // Check if admin is logged in
+    fetch("/session-check")
+      .then(res => res.json())
+      .then(data => {
+        console.log("Session Check Response:", data);
+        // ✅ CORRECTED ADMIN CHECK 👇
+        if (!data.loggedIn || !data.user?.isAdmin) {
+          alert("Access denied. Admins only.");
+          window.location.href = "/login.html";
+        } else {
+          loadElections();
+        }
+      })
+      .catch(err => console.error("Session check failed", err));
+
+
+    function showMessage(msg, type) {
+      const el = document.getElementById("message");
+      el.textContent = msg;
+      el.className = "alert " + (type === "success" ? "success" : "error");
+      el.style.display = "block";
+      setTimeout(() => el.style.display = "none", 3000);
+    }
+
+    // Add Election
+    document.getElementById("addElectionForm").addEventListener("submit", function (e) {
+      e.preventDefault();
+      const name = document.getElementById("election_name").value;
+      const start = document.getElementById("start_time").value;
+      const end = document.getElementById("end_time").value;
+
+      fetch("/add_election", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ election_name: name, start_time: start, end_time: end })
+      })
+      .then(res => res.text())
+      .then(msg => {
+        showMessage(msg, "success");
+        document.getElementById("addElectionForm").reset();
+        loadElections();
+      })
+      .catch(() => showMessage("Failed to create election", "error"));
+    });
+
+    // Add Candidate
+    document.getElementById("addCandidateForm").addEventListener("submit", function (e) {
+      e.preventDefault();
+      const eid = document.getElementById("election_id").value;
+      const cname = document.getElementById("candidate_name").value;
+
+      if (!eid) return showMessage("Select an election.", "error");
+
+      fetch("/add_candidate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ election_id: eid, candidate_name: cname })
+      })
+      .then(res => res.text())
+      .then(msg => {
+        showMessage(msg, "success");
+        document.getElementById("candidate_name").value = "";
+        loadElections();
+      })
+      .catch(() => showMessage("Failed to add candidate", "error"));
+    });
+
+    // Load elections into dropdown and management lists
+    function loadElections() {
+      fetch("/elections")
+        .then(res => res.json())
+        .then(data => {
+          const dropdown = document.getElementById("election_id");
+          const filter = document.getElementById("electionFilter");
+          const list = document.getElementById("electionList");
+
+          dropdown.innerHTML = '<option value="" disabled selected>Select Election</option>';
+          filter.innerHTML = '<option value="">Select an Election</option>';
+          list.innerHTML = "";
+
+          if (!data.length) {
+            list.innerHTML = "<li>No elections available.</li>";
+            return;
+          }
+
+          data.forEach(e => {
+            const opt = document.createElement("option");
+            opt.value = e.id;
+            opt.textContent = `${e.title} (Ends: ${e.end_time})`;
+            dropdown.appendChild(opt);
+            filter.appendChild(opt.cloneNode(true));
+
+            const li = document.createElement("li");
+            li.innerHTML = `
+              ${e.title} (Ends: ${e.end_time})
+              <button class="delete-btn" onclick="deleteElection(${e.id})">Delete</button>`;
+            list.appendChild(li);
+          });
+        });
+    }
+
+    // Load candidates
+    function loadCandidates() {
+      const eid = document.getElementById("electionFilter").value;
+      if (!eid) return;
+
+      fetch(`/candidates?election_id=${eid}`)
+        .then(res => res.json())
+        .then(data => {
+          const list = document.getElementById("candidateList");
+          list.innerHTML = data.length
+            ? data.map(c => `
+              <li>${c.candidate_name}
+              <button class="delete-btn" onclick="deleteCandidate(${c.id})">Delete</button></li>
+            `).join("")
+            : "<li>No candidates found.</li>";
+        });
+    }
+
+    // Delete election
+    function deleteElection(id) {
+      if (!confirm("Delete this election?")) return;
+
+      fetch(`/delete_election/${id}`, { method: "DELETE" })
+        .then(res => res.text())
+        .then(msg => {
+          showMessage(msg, "success");
+          loadElections();
+        })
+        .catch(() => showMessage("Failed to delete election", "error"));
+    }
+
+    // Delete candidate
+    function deleteCandidate(id) {
+      if (!confirm("Delete this candidate?")) return;
+
+      fetch(`/delete_candidate/${id}`, { method: "DELETE" })
+        .then(res => res.text())
+        .then(msg => {
+          showMessage(msg, "success");
+          loadCandidates();
+        })
+        .catch(() => showMessage("Failed to delete candidate", "error"));
+    }
+
+    window.onload = loadElections;
+  </script>
+</body>
+</html>
